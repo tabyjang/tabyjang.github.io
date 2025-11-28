@@ -15,9 +15,21 @@ const files = fs
   .filter((file) => file.endsWith(".md"))
   .sort((a, b) => b.localeCompare(a));
 
+// 현재 날짜를 YYYY-MM-DD 형식으로 가져오기
+const getCurrentDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const currentDate = getCurrentDate();
+
 const posts = files.map((filename) => {
   const filePath = path.join(postsDir, filename);
   let content = fs.readFileSync(filePath, "utf8");
+  let fileUpdated = false;
 
   // UTF-8 BOM 제거 (Windows 호환)
   if (content.charCodeAt(0) === 0xfeff) {
@@ -37,6 +49,8 @@ const posts = files.map((filename) => {
 
     // Front Matter 라인 파싱 (Windows 줄바꿈 지원)
     const lines = frontMatter.split(/\r?\n/);
+    let updatedLines = [];
+    
     lines.forEach((line) => {
       const colonIndex = line.indexOf(":");
       if (colonIndex > 0) {
@@ -64,8 +78,57 @@ const posts = files.map((filename) => {
         }
 
         metadata[key] = value;
+        
+        // date 필드가 없거나 오래된 날짜면 현재 날짜로 업데이트
+        if (key === "date") {
+          if (!value || value === "" || value < currentDate) {
+            updatedLines.push(`date: ${currentDate}`);
+            metadata[key] = currentDate;
+            fileUpdated = true;
+          } else {
+            updatedLines.push(line);
+          }
+        } else {
+          updatedLines.push(line);
+        }
+      } else {
+        updatedLines.push(line);
       }
     });
+    
+    // date 필드가 없으면 추가
+    if (!metadata.date || metadata.date === "") {
+      // title 다음에 date 추가
+      const titleIndex = updatedLines.findIndex(line => line.trim().startsWith("title:"));
+      if (titleIndex >= 0) {
+        updatedLines.splice(titleIndex + 1, 0, `date: ${currentDate}`);
+      } else {
+        updatedLines.unshift(`date: ${currentDate}`);
+      }
+      metadata.date = currentDate;
+      fileUpdated = true;
+    }
+    
+    // 파일이 업데이트되었으면 저장
+    if (fileUpdated) {
+      const updatedFrontMatter = updatedLines.join("\n");
+      const newContent = `---\n${updatedFrontMatter}\n---\n${postContent}`;
+      fs.writeFileSync(filePath, newContent, "utf8");
+      console.log(`Updated date in ${filename} to ${currentDate}`);
+    }
+  } else {
+    // Front Matter가 없으면 추가
+    const title = filename.replace(".md", "").replace(/-/g, " ");
+    const newContent = `---\ntitle: "${title}"\ndate: ${currentDate}\ntags: []\ncategory: ""\ndescription: ""\n---\n\n${content}`;
+    fs.writeFileSync(filePath, newContent, "utf8");
+    metadata = {
+      title: title,
+      date: currentDate,
+      tags: [],
+      category: "",
+      description: ""
+    };
+    console.log(`Added Front Matter to ${filename} with date ${currentDate}`);
   }
 
   // 발췌문 생성 (첫 200자)

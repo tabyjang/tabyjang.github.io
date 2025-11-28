@@ -1,6 +1,6 @@
 ---
 title: "AI를 수월하게 공부하는 방법"
-date: 2025-01-26
+date: 2025-11-28
 tags: ["AI", "학습", "기술", "가이드"]
 category: "Education"
 description: "AI 학습을 효과적으로 시작하고 지속하는 방법에 대한 실용적인 가이드입니다."

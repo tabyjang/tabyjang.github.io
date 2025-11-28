@@ -1,6 +1,6 @@
 ---
 title: "첫 번째 게시글"
-date: 2025-01-26
+date: 2025-11-28
 tags: ["JavaScript", "Web", "블로그"]
 category: "Development"
 description: "GitHub Pages 정적 블로그의 첫 번째 예제 게시글입니다."
